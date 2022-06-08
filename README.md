@@ -10,7 +10,7 @@ The purpose of the script is to automate the estimation of sweep widths, which c
 
 The script, SweepWidthParser.py, parses sweep width data and returns a probability of detection curve and sweep width values. Outputs include plots of the data and corresponding probability of detection curve. 
 
-## Input Data
+# Input Data
 
 When running the script, users are asked to select a parent directory. Within the parent directory should be a sub-directory containing two files: 'master.csv' and 'Calibration Records.xlsx'.
 

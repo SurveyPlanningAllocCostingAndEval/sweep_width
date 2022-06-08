@@ -1,0 +1,43 @@
+Artifact,Segment,Long Dist,L or R,Distance,Field,Overall Type,Number of segments
+Backpack,1,44,R,12,1,Backpack,3
+Fabric,1,4,L,6,1,Fabric,3
+Fabric,1,10,R,4,1,Fabric,3
+Fabric,1,20,L,11,1,Fabric,3
+Glasses,1,31,R,14,1,Glasses,3
+Glasses,1,46,R,16,1,Glasses,3
+Large shoe,1,16,L,5,1,Shoe,3
+Small shoe,1,12,R,11.5,1,Shoe,3
+Small shoe,1,25,R,4,1,Shoe,3
+Backpack,2,13,L,9,1,Backpack,3
+Fabric,2,7,L,5,1,Fabric,3
+Fabric,2,24,L,2,1,Fabric,3
+Fabric,2,25,L,7,1,Fabric,3
+Fabric,2,27,L,15,1,Fabric,3
+Fabric,2,47,R,17,1,Fabric,3
+Glasses,2,18,R,8,1,Glasses,3
+Glasses,2,24,L,6,1,Glasses,3
+Glasses,2,26,L,4,1,Glasses,3
+Glasses,2,27,L,10,1,Glasses,3
+Glasses,2,37,L,2,1,Glasses,3
+Large shoe,2,15,R,10,1,Shoe,3
+Large shoe,2,36,L,12.5,1,Shoe,3
+Small shoe,2,25,R,6.5,1,Shoe,3
+Backpack,3,12,R,15,1,Backpack,3
+Backpack,3,16,L,3,1,Backpack,3
+Backpack,3,17,L,18,1,Backpack,3
+Backpack,3,19,R,6,1,Backpack,3
+Fabric,3,4,R,12,1,Fabric,3
+Fabric,3,11,L,3,1,Fabric,3
+Fabric,3,11,L,16,1,Fabric,3
+Fabric,3,18,L,9,1,Fabric,3
+Fabric,3,18,R,14,1,Fabric,3
+Fabric,3,45,R,13,1,Fabric,3
+Fabric,3,49,L,8,1,Fabric,3
+Fabric,3,49,R,10,1,Fabric,3
+Glasses,3,11,L,12,1,Glasses,3
+Large shoe,3,7,R,15,1,Shoe,3
+Large shoe,3,41,L,7.5,1,Shoe,3
+Large shoe,3,47,R,2.5,1,Shoe,3
+Small shoe,3,3,R,9,1,Shoe,3
+Small shoe,3,43,R,1.5,1,Shoe,3
+Small shoe,3,48,R,14,1,Shoe,3

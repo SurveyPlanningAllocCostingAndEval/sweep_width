@@ -1,0 +1,320 @@
+---
+title: "Sweep Width Calibration Module"
+output:
+  html_document:
+    df_print: paged
+---
+
+## 1. Introduction
+
+The Sweep Width Calibration Module comprises a workflow for importing and plotting survey calibration data, determining true and false detections, and calculating effective sweep widths.
+
+Two user-provided datasets are required to use the Sweep Width Calibration Module. The first is a **Master** file containing the locations and types of seeded artifacts used in the calibration exercise. The second is a **Calibration Records** file representing the detection data produced by the participating surveyor. Both files should be in the .csv format.
+
+This R Notebook uses synthetic Master and Calibration Records data for demonstration purposes. The user can replace these files with real calibration data, so long as the files are formatted in the same way as the sample datasets. In general, the Master and Calibration Records files should contain the following variables/columns:
+
+-   **Dist**: Numeric/Float. Represents the perpendicular distance (in meters) of the artifact to the transect
+
+-   **LDist**: Numeric/Float. Represents the distance (in meters) along the transect
+
+-   **LorR**: Categorical/Factor. Indicates whether the observation was to the left or right of the transect
+
+-   **Type**: Categorical/Factor. Indicates the type of artifact observed
+
+## 2. Load Required Libraries
+
+```{r include=FALSE}
+# Sets the global options for all subsequent code chunks
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+For simplicity, the Sweep Width Module uses as few non-base R libraries as possible. The following code chunk verifies if the required libraries are already installed. If necessary, the required libraries will be installed and loaded.
+
+```{r results='hide'}
+# Install and load necessary packages
+install_and_load <- function(package_name) {
+  if (!requireNamespace(package_name, quietly = TRUE)) {
+    install.packages(package_name, dependencies = TRUE)
+  }
+  invisible(library(package_name, character.only = TRUE))
+}
+
+# List of packages to install and load
+packages_to_install <- c("tidyverse", "ggforce")
+
+# Install and load each package
+invisible(lapply(packages_to_install, install_and_load))
+```
+
+## 3. Importing Calibration Data
+
+### 3.1 Load Master Data
+
+The following code chunk will allow the user to select the appropriate .csv file containing the Master dataset with seeded artifact locations. To complete the demonstration, select the *master.csv* file downloaded from the *Sample Calibration Data* folder on GitHub. However, if the user has custom Master data, select that file when prompted.
+
+Examine the data frame to ensure that the import was successful. If the data does not display correctly, verify that the .csv file adheres to the formatting as seen in the sample *master.csv* file provided.
+
+```{r}
+master <- read_csv(choose.files())
+master
+```
+
+### 3.2 Plot Master Data
+
+The following will generate a two-dimensional plot showing the locations of the seeded artifacts in the calibration exercise. Review the locations to ensure that they are in the correct locations.
+
+```{r}
+master_LR <- master %>%
+  mutate(Dist = ifelse(LorR == "Left", -Dist, Dist))
+
+# Plot master_LR
+master_LR_plt <- ggplot(master_LR, aes(Dist, LDist, color = Type)) +
+  geom_point()
+
+master_LR_plt
+```
+
+### 3.3 Load Calibration Records Data
+
+Following the same approach as the Master data, select the *records.csv* file load the sample calibration records data. Otherwise, select a custom file with calibration data corresponding to the selected Master data. Inspect the data frame to ensure that the data was loaded correctly.
+
+```{r}
+records <- read_csv(choose.files())
+records
+```
+
+### 3.4 Plot Calibration Record Data
+
+Plot the calibration records and examine the locations to ensure that they are correct.
+
+```{r}
+records_LR <- records %>% 
+  mutate(Dist = ifelse(LorR == "Left", -Dist, Dist))
+
+records_plt <- ggplot(records_LR, aes(Dist, LDist, color = Type))+
+  geom_point()
+
+records_plt
+```
+
+## 4. Calculate Distance Estimate Errors
+
+In order to determine whether a given detection is positive or negative, it is necessary to account for potential errors in the estimate of an artifact's position along the transect and its distance from the transect (left or right). Generally, the closer the supposed detection, the more accurate the estimated location should be in order to qualify as a positive detection. Conversely, the more distant the supposed the detection, the more tolerant the module should be to distance estimate errors.
+
+Ideally, the function used to account for distance estimate errors should be based on empirical data from distance estimation experiments carried out under various conditions (e.g., different ground cover types).
+
+### 4.1 Generate Distance Estimate Errors
+
+For the present version of the Sweep Width Calibration Module, a generic approach has been adopted where the tolerances are determined according to specific distance intervals. For example, if an artifact is estimated to be 9.00 m to the right of the transect, it must be within 1.30 m of the actual seeded artifact in order for the detection to be considered positive. Likewise, if the estimate is 10.00 m to the right of the transect, the tolerance would be 1.50 m.
+
+The following code breaks down the tolerances into intervals. In the future, an empirically-derived, smooth/continuous function will be used in place of the approach used in the present iteration.
+
+```{r}
+distance_estimate_error <- function(distance) {
+  if (distance <= 0.00) {
+    return(0.00)
+  } else if (0.00 < distance && distance <= 0.50) {
+    return(0.10 * (distance / 0.50))
+  } else if (0.50 < distance && distance <= 1.00) {
+    return(0.10 + 0.10 * ((distance - 0.50) / 0.50))
+  } else if (1.00 < distance && distance <= 2.00) {
+    return(0.20 + 0.10 * ((distance - 1.00) / 1.00))
+  } else if (2.00 < distance && distance <= 5.00) {
+    return(0.30 + 0.15 * ((distance - 2.00) / 3.00))
+  } else if (5.00 < distance && distance <= 7.50) {
+    return(0.75 + 0.25 * ((distance - 5.00) / 2.50))
+  } else if (7.50 < distance && distance <= 10.00) {
+    return(1.00 + 0.50 * ((distance - 7.50) / 2.50))
+  } else {
+    # You may choose how to handle distances beyond 10.00 meters
+    return(NA)
+  }
+}
+```
+
+### 4.2 Add Distance Estimate Errors to `records`
+
+Applying the distance estimate error function to the calibration record data allows us to add these tolerances to each hypothetical detection. For the present version of the module, these tolerances constitute radii for circles around detections. This is an oversimplification of distance estimate errors, which would certainly be biased along the perpendicular axis to the transect line, resulting in ellipses, rather than circles, that represent detection tolerances.
+
+```{r}
+records$DistanceError <- sapply(records$Dist, distance_estimate_error)
+
+records
+```
+
+### 4.3 Plot Calibration Record Data with Tolerances
+
+Plotting the detection tolerances helps to visualize the increase in acceptable distance estimate errors at greater distances from the transect.
+
+Note that the polygons are actually circles, but due to the compressed X and Y axes they appear as elongate ellipses.
+
+```{r}
+records_DistError <- records %>% 
+  mutate(Dist = ifelse(LorR == "Left", -Dist, Dist))
+
+records_DistError_plt <- ggplot(records_DistError, aes(x = Dist, y = LDist)) +
+  # Scatter plot layer
+  geom_point() +
+  
+  # Circle layer
+  geom_circle(aes(x0 = Dist, y0 = LDist, r = DistanceError), fill = NA, color = "blue", alpha = 0.5) +
+  
+  # Set plot theme and labels
+  theme_minimal() +
+  labs(title = "Scatter Plot with Circles",
+       x = "Dist",
+       y = "LDist")
+
+records_DistError_plt
+```
+
+## 5. Generate Detections
+
+Now that distance error estimates have been established, we can proceed to determining if a detection is positive or negative. To do this, we must first calculate the Euclidean distance of potential detections to actual artifact locations and then assess whether or not they fall within a points' given tolerance.
+
+### 5.1 Calculate Euclidean Distance
+
+The following function calculates the Euclidean distances between all points in the `records` data frame and the `master` data frame, and determines if the shortest distance associated with each point is less than or equal to the supposed detection's distance estimate error value. If it is within this value, the detection is labelled as `TRUE`, otherwise it is labelled as `FALSE`.
+
+```{r}
+# Function to calculate Euclidean distance
+calculate_distance <- function(x1, y1, x2, y2) {
+  sqrt((x1 - x2)^2 + (y1 - y2)^2)
+}
+
+# Loop through each row in records and check for detection
+records_with_detection <- records %>%
+  mutate(Detected = pmap_lgl(list(Dist, LDist, DistanceError), function(Dist, LDist, DistanceError) {
+    any(calculate_distance(Dist, LDist, master$Dist, master$LDist) <= DistanceError)
+  }))
+```
+
+### 5.2 Plot of TRUE and FALSE Detections
+
+The following is a plot of positive (TRUE) and negative (FALSE) detections.
+
+```{r}
+# Filter the data frame for LorR equal to "Right"
+rec_R <- records_with_detection[records_with_detection$LorR == "Right", ]
+
+# Filter the data frame for LorR equal to "Left"
+rec_L <- records_with_detection[records_with_detection$LorR == "Left", ]
+
+# Negate Dist values in rec_L
+rec_L_negated <- rec_L %>%
+  mutate(Dist = -Dist)
+
+# Merge rec_L_negated with rec_R
+merged_df <- bind_rows(list(rec_L_negated = rec_L_negated, rec_R = rec_R), .id = "dataset")
+
+# Plot the merged data frame
+ggplot(merged_df, aes(Dist, LDist, color = Detected)) +
+  geom_point() +
+  labs(title = "True and False Detections", x = "Distance from Transect", y = "Transect Length") +
+  theme_minimal()
+```
+
+## 6. Calculate Effective Sweep Width
+
+Now that the positive and negative detections have been determined, it is possible to calculate the **Effective Sweep Width** for the surveyor.
+
+In this module, Effective Sweep Width is defined as the range, in meters, at which the number of undetected artifacts is equal to the number of detected artifacts beyond that range. Effective Sweep Width can be calculated in different ways, and in future versions of this module the user will have the ability to select the desired approach.
+
+### 6.1 Creating an Algorithm for Determining Effective Sweep Width
+
+The following function represents an algorithm that searches for the value (**Dist**) where the number of undetected artifacts less than that value is equal to the number of detected artifacts greater than that value.
+
+```{r}
+# Function to find the value of Dist where TRUE and FALSE counts are equal
+find_equal_dist <- function(df) {
+  equal_dist <- NA
+  
+  # Iterate over unique values of Dist
+  for (dist_value in unique(df$Dist)) {
+    # Count TRUE values where Dist is greater than the current value
+    count_true_greater_than_dist <- sum(df$Detected[df$Dist > dist_value])
+    
+    # Count FALSE values where Dist is less than or equal to the current value
+    count_false_less_than_or_equal_to_dist <- sum(!df$Detected[df$Dist <= dist_value])
+    
+    # Check for equality
+    if (count_true_greater_than_dist == count_false_less_than_or_equal_to_dist) {
+      equal_dist <- dist_value
+      break  # Exit the loop if equality is found
+    }
+  }
+  
+  return(equal_dist)
+}
+```
+
+### 6.2 Determine Effective Sweep Width
+
+Using the algorithm above, we can now calculate three types of effective sweep widths (ESW):
+
+1.  Right ESW
+2.  Left ESW
+3.  Total ESW (Right ESW + Left ESW)
+
+It is important to consider detection biases in the left and right fields of view. That is, some surveyors may have a tendency to scan and detect artifacts more effectively along one side of the transect compared to the other. Accounting for this individually will generate a more realistic understanding of effective sweep width, though when combined one can generate an overall effective sweep width.
+
+```{r}
+# Run the script for rec_R
+SW_R <- find_equal_dist(rec_R)
+
+# Run the script for rec_L
+SW_L <- find_equal_dist(rec_L)
+
+# Calculate the total sweep width
+SW_Total <- SW_R + SW_L
+
+# Display the results
+if (!is.na(SW_R)) {
+  cat("The Effective Sweep Width to the right of the transect is:", SW_R, "meters\n")
+} else {
+  cat("The Effective Sweep Width to the right of the transect could not be calculated.\n")
+}
+
+if (!is.na(SW_L)) {
+  cat("The Effective Sweep Width to the left of the transect is:", SW_L, "meters\n")
+} else {
+  cat("The Effective Sweep Width to the left of the transect could not be calculated.\n")
+}
+
+# Print the total sweep width
+if (!is.na(SW_Total)) {
+  cat("The Effective Sweep Width is:", SW_Total, "meters\n")
+} else {
+  cat("The Effective Sweep Width could not be calculated.\n")
+}
+```
+
+### 6.3 Plot Effective Sweep Width
+
+The following code generates plots of Right ESW, Left ESW, and Total ESW.
+
+```{r}
+ggplot(rec_L, aes(-Dist, LDist, color = Detected)) +
+  geom_point() +
+  geom_vline(xintercept = -SW_L)  # Negate SW_L to make it negative
+
+ggplot(rec_R, aes(Dist, LDist, color = Detected))+
+  geom_point()+
+  geom_vline(xintercept = SW_R)
+
+
+# Negate Dist values in rec_L
+rec_L_negated <- rec_L %>%
+  mutate(Dist = -Dist)
+
+# Merge rec_L_negated with rec_R
+merged_df <- bind_rows(list(rec_L_negated = rec_L_negated, rec_R = rec_R), .id = "dataset")
+
+# Plot the merged dataframe with two vertical lines
+ggplot(merged_df, aes(Dist, LDist, color = Detected, shape = dataset)) +
+  geom_point() +
+  geom_vline(aes(xintercept = -SW_L), linetype = "dashed", color = "red") +  # -SW_L line
+  geom_vline(aes(xintercept = SW_R), linetype = "dashed", color = "blue") +   # SW_R line
+  labs(title = "Effective Sweep Widths Comparison", x = "Dist (negated)", y = "LDist") +
+  theme_minimal()
+```

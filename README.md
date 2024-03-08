@@ -1,5 +1,7 @@
 # Automating Sweep Widths for Archaeological Surveys
 
+[![DOI](https://zenodo.org/badge/501252345.svg)](https://zenodo.org/doi/10.5281/zenodo.10798637)
+
 This repository hosts an R Notebook containing a simplified module for calculating effective sweep widths for archaeological surveys.
 
 Based on an earlier Python 2 module developed by Yaron Milwid in 2016 (with further updates in 2017), this module represents an R-based adaptation written in a notebook-style format. 

@@ -1,6 +1,6 @@
 # Automating Sweep Widths for Archaeological Surveys
 
-[![DOI](https://zenodo.org/badge/501252345.svg)](https://zenodo.org/doi/10.5281/zenodo.10798637)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17801961.svg)](https://doi.org/10.5281/zenodo.17801961)
 
 This repository hosts an R Notebook containing a simplified module for calculating effective sweep widths for archaeological surveys.
 

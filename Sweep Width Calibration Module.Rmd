@@ -3,6 +3,9 @@ title: "Sweep Width Calibration Module"
 output:
   html_document:
     df_print: paged
+params:
+  master_csv: "master.csv"
+  records_csv: "records.csv"
 ---
 
 ## 1. Introduction
@@ -28,25 +31,73 @@ This R Notebook uses synthetic Master and Calibration Records data for demonstra
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-For simplicity, the Sweep Width Module uses as few non-base R libraries as possible. The following code chunk verifies if the required libraries are already installed. If necessary, the required libraries will be installed and loaded.
+For simplicity, the Sweep Width Module uses as few non-base R libraries as possible. The following code chunk verifies that the required libraries are already installed and then loads them. If any are missing, the notebook stops with a clear message showing exactly what to install.
 
 ```{r results='hide'}
-# Install and load necessary packages
-install_and_load <- function(package_name) {
-  if (!requireNamespace(package_name, quietly = TRUE)) {
-    install.packages(package_name, dependencies = TRUE)
-  }
-  invisible(library(package_name, character.only = TRUE))
+# Verify required packages are installed, then load them.
+required_packages <- c("tidyverse", "ggforce")
+
+missing <- required_packages[!vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)]
+
+if (length(missing) > 0) {
+  stop(
+    paste0(
+      "Missing required packages: ", paste(missing, collapse = ", "), "
+",
+      "Install them with:
+",
+      "install.packages(c(", paste0('\"', missing, '\"', collapse = ", "), "))"
+    ),
+    call. = FALSE
+  )
 }
 
-# List of packages to install and load
-packages_to_install <- c("tidyverse", "ggforce")
-
-# Install and load each package
-invisible(lapply(packages_to_install, install_and_load))
+invisible(lapply(required_packages, library, character.only = TRUE))
 ```
 
+```{r}
+# Reproducibility
+# This workflow is deterministic, but we set a seed as a safeguard
+# in case any future updates introduce stochastic steps (e.g., jitter, resampling).
+set.seed(123)
+```
+
+
 ## 3. Importing Calibration Data
+
+
+### 3.0 Specify input file paths (cross-platform)
+
+This notebook is designed to run non-interactively on Windows, macOS, and Linux. Instead of using Windows-only file picker functions, it reads the master and records CSVs from file paths. By default, it looks for `master.csv` and `records.csv` in the same folder as this Rmd.
+
+```{r}
+# Resolve paths relative to this Rmd (works when knitting and when running interactively)
+rmd_dir <- tryCatch(
+  normalizePath(dirname(knitr::current_input()), winslash = "/", mustWork = FALSE),
+  error = function(e) normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+)
+
+# Paths can be overridden via Rmd parameters (see YAML header)
+master_path  <- file.path(rmd_dir, params$master_csv)
+records_path <- file.path(rmd_dir, params$records_csv)
+
+if (!file.exists(master_path)) {
+  stop(paste0(
+    "Master CSV not found at: ", master_path,
+    "\nSet params$master_csv in the YAML header or place master.csv next to the Rmd."
+  ))
+}
+if (!file.exists(records_path)) {
+  stop(paste0(
+    "Records CSV not found at: ", records_path,
+    "\nSet params$records_csv in the YAML header or place records.csv next to the Rmd."
+  ))
+}
+
+
+master_path
+records_path
+```
 
 ### 3.1 Load Master Data
 
@@ -55,7 +106,7 @@ The following code chunk will allow the user to select the appropriate .csv file
 Examine the data frame to ensure that the import was successful. If the data does not display correctly, verify that the .csv file adheres to the formatting as seen in the sample *master.csv* file provided.
 
 ```{r}
-master <- read_csv(choose.files())
+master <- readr::read_csv(master_path, show_col_types = FALSE)
 master
 ```
 
@@ -79,7 +130,7 @@ master_LR_plt
 Following the same approach as the Master data, select the *records.csv* file load the sample calibration records data. Otherwise, select a custom file with calibration data corresponding to the selected Master data. Inspect the data frame to ensure that the data was loaded correctly.
 
 ```{r}
-records <- read_csv(choose.files())
+records <- readr::read_csv(records_path, show_col_types = FALSE)
 records
 ```
 
@@ -317,4 +368,11 @@ ggplot(merged_df, aes(Dist, LDist, color = Detected, shape = dataset)) +
   geom_vline(aes(xintercept = SW_R), linetype = "dashed", color = "blue") +   # SW_R line
   labs(title = "Effective Sweep Widths Comparison", x = "Dist (negated)", y = "LDist") +
   theme_minimal()
+```
+
+## Appendix: Reproducibility information
+
+```{r}
+# Record the computational environment used to run this notebook
+sessionInfo()
 ```

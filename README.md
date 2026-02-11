@@ -31,8 +31,13 @@ Additionally, the follow R packages are required to execute the provided code:
 - ggplot2
 - ggforce
 
-Note: All required packages are installed (if necessary) and loaded at in the first cell of the notebook. 
+Note: The notebook verifies required packages are installed and loads them in the first code cell. If any are missing, it stops with a message showing what to install.
 
 ## Running the Module
 
-Open the .Rmd file in RStudio. Run each cell and follow any prompts (e.g., selecting the master.csv and records.csv files to load data). 
+Open the .Rmd file in RStudio and either run chunks interactively or knit to HTML.
+
+- By default, the notebook looks for `master.csv` and `records.csv` in the same folder as the Rmd (i.e., the repository root).
+- If your files are elsewhere, update the YAML parameters at the top of the Rmd (`params: master_csv:` and `params: records_csv:`) to point to your CSVs.
+
+This approach avoids Windows-only file picker functions so the notebook can run on Windows, macOS, and Linux.

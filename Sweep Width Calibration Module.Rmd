@@ -101,7 +101,7 @@ records_path
 
 ### 3.1 Load Master Data
 
-The following code chunk will allow the user to select the appropriate .csv file containing the Master dataset with seeded artifact locations. To complete the demonstration, select the *master.csv* file downloaded from the *Sample Calibration Data* folder on GitHub. However, if the user has custom Master data, select that file when prompted.
+The code chunk below reads the Master dataset (seeded artifact locations) from the file path defined in the YAML parameters (`params: master_csv:`). By default, the notebook expects `master.csv` to be in the same folder as this Rmd (the repository root). If your Master file is elsewhere, update `params: master_csv:` in the YAML header to point to the correct CSV (absolute or relative path).
 
 Examine the data frame to ensure that the import was successful. If the data does not display correctly, verify that the .csv file adheres to the formatting as seen in the sample *master.csv* file provided.
 
